@@ -3,7 +3,3 @@ node_modules/
 
 # dotenv environment variable files
 .env
-
-# Ignore these for now as they do not work properly
-Dockerfile
-fly.toml

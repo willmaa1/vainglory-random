@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, RoleManager, BaseInteraction, AttachmentBuilder } = require('discord.js');
-const { createCanvas, loadImage } = require('canvas');
+const Jimp = require('jimp');
 const heropath = "https://www.vaingloryfire.com/images/wikibase/icon/heroes/" // + hero + .png
 const itempath = "https://www.vaingloryfire.com/images/wikibase/icon/items/"// + item + .png
 const captains = [
@@ -117,18 +117,6 @@ const only5v5 = [
 ]
 const allItems = weapon.concat(crystal).concat(defence).concat(boots).concat(utility)
 
-const addImage = async (ctx, path, name, x, y, width, height) => {
-  try {
-    await loadImage(path + name + '.png')
-      .then((image) => {
-        ctx.drawImage(image, x, y, width, height)
-      })
-  } catch (e) {
-    console.log(e)
-    console.log(path + name + '.png')
-  }
-}
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('random')
@@ -152,8 +140,19 @@ module.exports = {
     console.log(heroes)
     console.log(allow5v5items)
 
-    const canvas = createCanvas(7 * 100, heroes * 110);
-    const ctx = canvas.getContext('2d');
+    let canvas = new Jimp(7 * 100, heroes * 110);
+    
+    const addImage = async (path, name, x, y, width, height) => {
+      try {
+        const image = await Jimp.read(path + name + '.png');
+        await image.resize(width, height);
+        await canvas.composite(image, x, y);
+      } catch (e) {
+        canvas = await new Jimp(7*100, heroes*110);
+        console.log("Eror with: " + path + name + '.png')
+        console.log(e)
+      }
+    }
 
     const unusedHeroes = [...allHeroes] // shallow copy
     let selected = [];
@@ -161,7 +160,7 @@ module.exports = {
     for (let i = 0; i < heroes; i++) {
       const index = Math.floor(Math.random() * unusedHeroes.length)
       const hero = unusedHeroes.splice(index, 1)[0];
-       await addImage(ctx, heropath, hero, 0, i * 110, 100, 100);
+       await addImage(heropath, hero, 0, i * 110, 100, 100);
       let unusedItems = [...allItems] // shallow copy
       if (allow5v5items) {
         unusedItems = unusedItems.concat(only5v5)
@@ -172,7 +171,7 @@ module.exports = {
         const indexitem = Math.floor(Math.random() * unusedItems.length)
         const item = unusedItems.splice(indexitem, 1)[0]
 
-         await addImage(ctx, itempath, item, 5 + itemi * 100, 5 + i * 110, 95, 95);
+         await addImage(itempath, item, 5 + itemi * 100, 5 + i * 110, 95, 95);
         items.push(item);
       }
       selected.push(`${hero}: ${items.join(", ")}\n`)
@@ -183,7 +182,7 @@ module.exports = {
     }
     selected = selected.join("")
     console.log("almost")
-     const attachment = new AttachmentBuilder(canvas.toBuffer(), { name: "randomized.png" })
+     const attachment = new AttachmentBuilder(await canvas.getBufferAsync(Jimp.MIME_PNG), { name: "randomized.png" })
     await interaction.editReply({ content: selected, files: [attachment] });
     console.log("reply sent")
     //await interaction.reply(JSON.stringify(selected));

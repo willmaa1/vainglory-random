@@ -1,0 +1,13 @@
+# fly.toml file generated for vainglory-random on 2022-10-16T22:43:19+03:00
+
+app = "vainglory-random"
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
+
+[build]
+  builder = "heroku/buildpacks:20"
+
+[experimental]
+  allowed_public_ports = []
+  auto_rollback = true
