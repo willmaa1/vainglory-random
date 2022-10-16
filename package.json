@@ -8,6 +8,10 @@
     "update": "node deploy-commands.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "engine": {
+    "node": "16.17.0",
+    "npm": "8.15.0"
+  },
   "author": "Alex Willman",
   "license": "ISC",
   "dependencies": {

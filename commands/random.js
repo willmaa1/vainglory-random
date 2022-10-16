@@ -66,7 +66,6 @@ const junglers = [
   "ylva"
 ]
 const allHeroes = captains.concat(laners).concat(junglers)
-var banned = []
 
 const weapon = [
   "sorrowblade",
@@ -162,7 +161,7 @@ module.exports = {
     for (let i = 0; i < heroes; i++) {
       const index = Math.floor(Math.random() * unusedHeroes.length)
       const hero = unusedHeroes.splice(index, 1)[0];
-      await addImage(ctx, heropath, hero, 0, i * 110, 100, 100);
+       await addImage(ctx, heropath, hero, 0, i * 110, 100, 100);
       let unusedItems = [...allItems] // shallow copy
       if (allow5v5items) {
         unusedItems = unusedItems.concat(only5v5)
@@ -173,7 +172,7 @@ module.exports = {
         const indexitem = Math.floor(Math.random() * unusedItems.length)
         const item = unusedItems.splice(indexitem, 1)[0]
 
-        await addImage(ctx, itempath, item, 5 + itemi * 100, 5 + i * 110, 95, 95);
+         await addImage(ctx, itempath, item, 5 + itemi * 100, 5 + i * 110, 95, 95);
         items.push(item);
       }
       selected.push(`${hero}: ${items.join(", ")}\n`)
@@ -184,7 +183,7 @@ module.exports = {
     }
     selected = selected.join("")
     console.log("almost")
-    const attachment = new AttachmentBuilder(canvas.toBuffer(), { name: "randomized.png" })
+     const attachment = new AttachmentBuilder(canvas.toBuffer(), { name: "randomized.png" })
     await interaction.editReply({ content: selected, files: [attachment] });
     console.log("reply sent")
     //await interaction.reply(JSON.stringify(selected));
