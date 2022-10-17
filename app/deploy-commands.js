@@ -18,6 +18,10 @@ for (const file of commandFiles) {
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
+rest.put(Routes.applicationCommands(process.env.CLIENT_ID), {body: ""})
+  .then(() => console.log('Succesfully cleared previous commands'))
+  .catch(console.error);
+
 rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands })
   .then(() => console.log('Successfully registered application commands.'))
   .catch(console.error);
