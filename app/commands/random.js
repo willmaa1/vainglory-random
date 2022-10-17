@@ -1,121 +1,9 @@
 const { SlashCommandBuilder, RoleManager, BaseInteraction, AttachmentBuilder } = require('discord.js');
 const Jimp = require('jimp');
+const allItems = require('../items.json');
+const allHeroes = require('../heroes.json')
 const heropath = "https://www.vaingloryfire.com/images/wikibase/icon/heroes/" // + hero + .png
 const itempath = "https://www.vaingloryfire.com/images/wikibase/icon/items/"// + item + .png
-const captains = [
-  "adagio",
-  "ardan",
-  "catherine",
-  "churnwalker",
-  "flicker",
-  "fortress",
-  "grace",
-  "lance",
-  "lorelai",
-  "lyra",
-  "phinn",
-  "viola",
-  "yates"
-]
-const laners = [
-  "amael",
-  "anka",
-  "baptiste",
-  "baron",
-  "blackfeather",
-  "caine",
-  "celeste",
-  "gwen",
-  "idris",
-  "ishtar",
-  "karas",
-  "kensei",
-  "kestrel",
-  "kinetic",
-  "leo",
-  "magnus",
-  "malene",
-  "miho",
-  "reza",
-  "ringo",
-  "samuel",
-  "san-feng",
-  "saw",
-  "silvernail",
-  "skaarf",
-  "skye",
-  "varya",
-  "vox",
-  "warhawk"
-]
-const junglers = [
-  "alpha",
-  "glaive",
-  "grumpjaw",
-  "inara",
-  "joule",
-  "koshka",
-  "krul",
-  "ozo",
-  "petal",
-  "reim",
-  "rona",
-  "shin",
-  "taka",
-  "tony",
-  "ylva"
-]
-const allHeroes = captains.concat(laners).concat(junglers)
-
-const weapon = [
-  "sorrowblade",
-  "serpent-mask",
-  "spellsword",
-  "poisoned-shiv",
-  "breaking-point",
-  "tension-bow",
-  "bonesaw",
-  "tornado-trigger",
-  "tyrants-monocle"
-]
-const crystal = [
-  "shatterglass",
-  "spellfire",
-  "frostburn",
-  "dragons-eye",
-  "clockwork",
-  "broken-myth",
-  "eve-of-harvest",
-  "aftershock",
-  "alternating-current"
-]
-const defence = [
-  "pulseweave",
-  "fountain-of-renewal",
-  "crucible",
-  "celestial-shroud",
-  "aegis",
-  "capacitor-plate",
-  "rooks-decree",
-  "slumbering-husk",
-  "metal-jacket",
-  "atlas-pauldron"
-]
-const boots = [
-  "journey-boots",
-  "war-treads",
-  "halcyon-chargers"
-]
-const utility = [
-  "contraption",
-  "stormcrown",
-  "shiversteel"
-]
-const only5v5 = [
-  "teleport-boots",
-  "superscout-2000"
-]
-const allItems = weapon.concat(crystal).concat(defence).concat(boots).concat(utility)
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -127,64 +15,115 @@ module.exports = {
         .setMaxValue(10)
         .setMinValue(1)
     )
+    .addStringOption(option =>
+      option.setName('duplicates')
+        .setDescription('How are duplicate items handeled (default smart)')
+        .addChoices(
+          {name: 'Allowed', value: 'yes'},
+          {name: 'Smart', value: 'smart'},
+          {name: 'Not allowed', value: 'no'},
+        )
+    )
     .addBooleanOption(option =>
       option.setName('allow5v5')
         .setDescription("Are 5v5 items allowed (default no)")
-    ), // TODO: Add options for allowing/disallowing same items, 3-4 modes. Add possibility to ban some heros
+    )
+    .addStringOption(option =>
+      option.setName('boots')
+        .setDescription('Should boots be always included? (default First)')
+        .addChoices(
+          {name: 'First', value: 'first'},
+          {name: 'Somewhere', value: 'yes'},
+          {name: 'Maybe', value: 'no'},
+        )
+    ),
   async execute(interaction) {
-    console.log("execute")
     await interaction.deferReply();
     // interaction.client to access client within command
     const heroes = interaction.options.get('heroes') ? interaction.options.get('heroes').value : 1;
     const allow5v5items = interaction.options.get('allow5v5') ? interaction.options.get('allow5v5').value : false;
-    console.log(heroes)
-    console.log(allow5v5items)
+    const itemduplicates = interaction.options.get('duplicates') ? interaction.options.get('duplicates').value : 'smart';
+    const itemboots = interaction.options.get('boots') ? interaction.options.get('boots').value : 'first';
+    console.log(`random heroes:${heroes} allow5v5:${allow5v5items} duplicates:${itemduplicates} boots:${itemboots}`)
 
     let canvas = new Jimp(7 * 100, heroes * 110);
     
     const addImage = async (path, name, x, y, width, height) => {
       try {
-        const image = await Jimp.read(path + name + '.png');
-        await image.resize(width, height);
-        await canvas.composite(image, x, y);
+        const image = await Jimp.read(`${path}${name}.png`);
+        image.resize(width, height);
+        canvas.composite(image, x, y);
       } catch (e) {
-        canvas = await new Jimp(7*100, heroes*110);
-        console.log("Eror with: " + path + name + '.png')
+        canvas = new Jimp(7*100, heroes*110);
+        console.log(`Error with: ${path}${name}.png`)
         console.log(e)
       }
     }
 
+    const isSmart = (build, item, hero, boots) => {
+      return (!(item.type === 'boots' && (boots || build.some(i => i.type === 'boots'))) &&
+      !(item.attributes.includes('unique') && build.includes(item)) &&
+      !(item.attributes.includes('lifesteal') && item.type === 'weapon' && build.some(i => i.attributes.includes('lifesteal') && i.type == 'weapon')) &&
+      !(item.attributes.includes('armorbreak') && build.some(i => i.attributes.includes('armorbreak'))))
+    }
+
     const unusedHeroes = [...allHeroes] // shallow copy
-    let selected = [];
+    // let selected = [];
     // Select n heroes as requested
     for (let i = 0; i < heroes; i++) {
       const index = Math.floor(Math.random() * unusedHeroes.length)
       const hero = unusedHeroes.splice(index, 1)[0];
        await addImage(heropath, hero, 0, i * 110, 100, 100);
-      let unusedItems = [...allItems] // shallow copy
-      if (allow5v5items) {
-        unusedItems = unusedItems.concat(only5v5)
+
+      // Shallow copy of items
+      let unusedItems = allow5v5items ?
+        [...allItems] :
+        [...allItems].filter(item => !item.attributes.includes("5v5"))
+
+      // Choose boots for the build
+      const bootsidx = itemboots === 'first' ? 1 :
+        itemboots === 'yes' ? Math.floor(1+Math.random()*6) :
+        -1
+      const bootsall = unusedItems.filter(item => item.type === 'boots')
+      const boots = bootsall[Math.floor(Math.random()*bootsall.length)]
+      // Delete the boots from available options
+      if (bootsidx > 0 && (itemduplicates === 'no' || itemduplicates === 'smart')) {
+        unusedItems.splice(unusedItems.indexOf(boots), 1)
       }
 
-      let items = [];
+
+      let itemsSelected = [];
       for (let itemi = 1; itemi < 7; itemi++) {
-        const indexitem = Math.floor(Math.random() * unusedItems.length)
-        const item = unusedItems.splice(indexitem, 1)[0]
+        let itemSelected = {};
+        if (itemi === bootsidx) {
+          itemSelected = boots;
+        } else {
+          const indexitem = Math.floor(Math.random() * unusedItems.length)
+          itemSelected = unusedItems[indexitem]
+          // IF the item we selected was duplicate/not smart, delete and try again
+          if (itemduplicates === 'no' && itemsSelected.includes(itemSelected) || (itemduplicates === 'smart' && !isSmart(itemsSelected, itemSelected, "", bootsidx > 0))) {
+            unusedItems.splice(indexitem, 1)
+            itemi--;
+            continue
+          }
+          // Delete the selected item from possible list of items if necessary
+          if (itemduplicates === 'no' || (itemduplicates === 'smart' && itemSelected.attributes.includes("unique"))) {
+            unusedItems.splice(indexitem, 1)
+          }
+        }
 
-         await addImage(itempath, item, 5 + itemi * 100, 5 + i * 110, 95, 95);
-        items.push(item);
+        await addImage(itempath, itemSelected.name, 5 + itemi * 100, 5 + i * 110, 95, 95);
+        itemsSelected.push(itemSelected);
       }
-      selected.push(`${hero}: ${items.join(", ")}\n`)
+      // selected.push(`${hero}: ${itemsSelected.join(", ")}\n`)
       //selected.push({
       //  hero: hero,
       //  items: items
       //})
     }
-    selected = selected.join("")
-    console.log("almost")
+    // selected = selected.join(", ")
      const attachment = new AttachmentBuilder(await canvas.getBufferAsync(Jimp.MIME_PNG), { name: "randomized.png" })
-    await interaction.editReply({ content: selected, files: [attachment] });
+    await interaction.editReply({ content:"", files: [attachment] });
     console.log("reply sent")
-    //await interaction.reply(JSON.stringify(selected));
   },
 };
