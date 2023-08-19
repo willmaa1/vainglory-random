@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, RoleManager, BaseInteraction, AttachmentBuilder } = require('discord.js');
+const { SlashCommandBuilder, AttachmentBuilder } = require('discord.js');
 const Jimp = require('jimp');
 const allItems = require('../items.json');
 const allHeroes = require('../heroes.json')
@@ -7,7 +7,7 @@ const itempath = "https://www.vaingloryfire.com/images/wikibase/icon/items/"// +
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('random')
+    .setName('vgrandom')
     .setDescription('Gives a random hero with a random build')
     .addIntegerOption(option =>
       option.setName('heroes')

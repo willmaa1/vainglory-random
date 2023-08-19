@@ -5,7 +5,7 @@ require('dotenv').config()
 // Run "npm run update" instead when necessary
 //require("./deploy-commands.js") 
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates] });
 
 client.commands = new Collection();
 const commandsPath = path.join(__dirname, 'commands');
@@ -32,7 +32,11 @@ client.on('interactionCreate', async interaction => {
     await command.execute(interaction);
   } catch (error) {
     console.error(error);
-    await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply({ content: 'There was an error while executing this command!', ephemeral: true })
+    } else {
+      await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+    }
   }
 });
 
