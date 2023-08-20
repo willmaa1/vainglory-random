@@ -20,6 +20,6 @@
     "dotenv": "^16.0.3",
     "jimp": "^0.16.2",
     "libsodium-wrappers": "^0.7.11",
-    "yt-stream": "^1.4.8"
+    "play-dl": "^1.9.6"
   }
 }
